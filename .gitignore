@@ -1,0 +1,11 @@
+# videos
+videos/
+
+# env files
+.env
+
+# ide files
+.vscode/
+
+# wandb files
+wandb/
