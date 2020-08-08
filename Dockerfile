@@ -24,4 +24,4 @@ COPY . /src
 RUN pip3 install -r requirements.txt
 
 # # This will be the command to run the simulator
-CMD xvfb-run -a python3 gym_simulator.py
+CMD xvfb-run -a python3 gym_bridge.py
