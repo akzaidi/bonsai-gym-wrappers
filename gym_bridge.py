@@ -112,6 +112,14 @@ class TemplateSimulatorSession:
             self.env.env.length = config["length"]
             if self.save_runs:
                 self.env.env.env.length = config["length"]
+        if "masspole" in config.keys():
+            self.env.env.masspole = config["masspole"]
+            if self.save_video:
+                self.env.env.env.masspole = config["masspole"]
+        if "gravity" in config.keys():
+            self.env.env.gravity = config["gravity"]
+            if self.save_video:
+                self.env.env.env.gravity = config["gravity"]
         if self.render:
             self.sim_render()
         if config is None:
@@ -215,7 +223,9 @@ def env_setup():
     return workspace, access_key
 
 
-def test_random_policy(render: bool = True, num_episodes: int = 10):
+def test_random_policy(
+    render: bool = True, num_episodes: int = 10, save_video: bool = False
+):
 
     sim = TemplateSimulatorSession(save_runs=True)
     for episode in range(num_episodes):
@@ -300,8 +310,8 @@ def main(
                 time.sleep(event.idle.callback_time)
                 print("Idling...")
             elif event.type == "EpisodeStart":
-                print(event.episode_start.config)
-                sim.episode_start(event.episode_start.config)
+                # sim.episode_start(event.episode_start.config)
+                sim.episode_start(config)
             elif event.type == "EpisodeStep":
                 sim.episode_step(event.episode_step.action["command"])
             elif event.type == "EpisodeFinish":
@@ -331,5 +341,5 @@ def main(
 
 
 if __name__ == "__main__":
-    main(render=False, save_runs=True)
+    main(render=True, save_runs=False)
     # test_random_policy(render=False)
