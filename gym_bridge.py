@@ -29,7 +29,7 @@ from microsoft_bonsai_api.simulator.generated.models import (
 )
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
-brain_name = "stellar-pole"
+brain_name = "gym-pole"
 default_config = {"length": 1.5, "masspole": 0.1}
 
 
@@ -310,8 +310,8 @@ def main(
                 time.sleep(event.idle.callback_time)
                 print("Idling...")
             elif event.type == "EpisodeStart":
-                # sim.episode_start(event.episode_start.config)
-                sim.episode_start(config)
+                sim.episode_start(event.episode_start.config)
+                # sim.episode_start(config)
             elif event.type == "EpisodeStep":
                 sim.episode_step(event.episode_step.action["command"])
             elif event.type == "EpisodeFinish":

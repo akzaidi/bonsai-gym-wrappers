@@ -1,7 +1,6 @@
 # https://docs.bons.ai/references/inkling2-reference.html
 inkling "2.0"
 using Number
-using Math
 
 
 type SimState {
@@ -39,9 +38,6 @@ type Action {
 }
 
 type SimConfig {
-    # allowable variables for configuration in "scenarios"
-    # config -> star.brain_to_sim_config -> simulator_integration.simulator_reset
-    # make sure these are properly defined in both methods
     masspole: number,
     length: number
 }
