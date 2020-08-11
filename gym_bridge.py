@@ -30,7 +30,7 @@ from microsoft_bonsai_api.simulator.generated.models import (
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 brain_name = "stellar-pole"
-config = {"length": 1.5, "masspole": 0.1}
+default_config = {"length": 1.5, "masspole": 0.1}
 
 
 class TemplateSimulatorSession:
@@ -39,7 +39,8 @@ class TemplateSimulatorSession:
         env_name: str = "CartPole-v1",
         render: bool = False,
         save_prefix: str = brain_name,
-        save_video: bool = False,
+        save_runs: bool = False,
+        log_file: str = None,
     ):
         """Template for simulating sessions with
 
@@ -60,7 +61,20 @@ class TemplateSimulatorSession:
         self.save_path = (
             f"videos/{self.save_prefix}__{self.env_name}__{int(time.time())}"
         )
-        if save_video:
+        if not log_file:
+            current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            log_file = current_time + "_" + env_name + "_log.csv"
+            log_file = os.path.join("log", log_file)
+            logs_directory = pathlib.Path(log_file).parent.absolute()
+            if not pathlib.Path(logs_directory).exists():
+                print(
+                    "Directory does not exist at {0}, creating now...".format(
+                        str(logs_directory)
+                    )
+                )
+                logs_directory.mkdir(parents=True, exist_ok=True)
+        self.log_file = log_file
+        if save_runs:
             self.episode_save()
             wandb.init(
                 project="bonsai-experiments",
@@ -69,7 +83,7 @@ class TemplateSimulatorSession:
                 monitor_gym=True,
             )
         self.sparse_reward = 0
-        self.save_video = save_video
+        self.save_runs = save_runs
 
     def get_state(self) -> Dict[str, List]:
         """ Called to retreive the current state of the simulator. """
@@ -96,10 +110,13 @@ class TemplateSimulatorSession:
         self.observation = self.env.reset()
         if "length" in config.keys():
             self.env.env.length = config["length"]
-            if self.save_video:
+            if self.save_runs:
                 self.env.env.env.length = config["length"]
         if self.render:
             self.sim_render()
+        if config is None:
+            config = default_config
+        self.config = config
 
     def episode_step(self, action: Dict[str, Any]):
         """Called for each step of the episode 
@@ -115,6 +132,8 @@ class TemplateSimulatorSession:
         )
         if self.render:
             self.sim_render()
+        if self.save_runs:
+            wandb.log({**action, **self.observation, **self.config})
 
     def sim_render(self):
 
@@ -132,6 +151,37 @@ class TemplateSimulatorSession:
     def episode_save(self):
 
         self.env = Monitor(self.env, directory=self.save_path, resume=True)
+
+    def log_iterations(self, state, action, episode: int = 0, iteration: int = 1):
+        """Log iterations during training to a CSV.
+
+        Parameters
+        ----------
+        state : Dict
+        action : Dict
+        episode : int, optional
+        iteration : int, optional
+        """
+
+        import pandas as pd
+
+        def add_prefixes(d, prefix: str):
+            return {f"{prefix}_{k}": v for k, v in d.items()}
+
+        state = add_prefixes(state, "state")
+        action = add_prefixes(action, "action")
+        config = add_prefixes(self.config, "config")
+        data = {**state, **action, **config}
+        data["episode"] = episode
+        data["iteration"] = iteration
+        log_df = pd.DataFrame(data, index=[0])
+
+        if os.path.exists(self.log_file):
+            log_df.to_csv(
+                path_or_buf=self.log_file, mode="a", header=False, index=False
+            )
+        else:
+            log_df.to_csv(path_or_buf=self.log_file, mode="w", header=True, index=False)
 
 
 def env_setup():
@@ -167,11 +217,11 @@ def env_setup():
 
 def test_random_policy(render: bool = True, num_episodes: int = 10):
 
-    sim = TemplateSimulatorSession(save_video=True)
+    sim = TemplateSimulatorSession(save_runs=True)
     for episode in range(num_episodes):
         iteration = 0
         terminal = False
-        obs = sim.episode_start(config=config)
+        obs = sim.episode_start(config=default_config)
         action = sim.random_policy()
         while not terminal:
             sim.episode_step(action)
@@ -187,21 +237,29 @@ def test_random_policy(render: bool = True, num_episodes: int = 10):
     sim.env.close()
 
 
-def main(render: bool = False, save_runs: bool = False):
+def main(
+    render: bool = False,
+    log_iterations: bool = False,
+    config_setup: bool = False,
+    save_runs: bool = False,
+):
     """Main entrypoint for running simulator connections
 
     Parameters
     ----------
     render : bool, optional
         visualize steps in environment, by default True, by default False
+    log_iterations: bool, optional
+        log iterations during training to a CSV file
     """
 
     # workspace environment variables
-    env_setup()
-    load_dotenv(verbose=True, override=True)
+    if config_setup:
+        env_setup()
+        load_dotenv(verbose=True, override=True)
 
     # Grab standardized way to interact with sim API
-    sim = TemplateSimulatorSession(render=render, save_video=save_runs)
+    sim = TemplateSimulatorSession(render=render, save_runs=save_runs)
 
     # Configure client to interact with Bonsai service
     config_client = BonsaiClientConfig()
