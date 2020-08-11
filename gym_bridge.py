@@ -30,7 +30,7 @@ from microsoft_bonsai_api.simulator.generated.models import (
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 brain_name = "stellar-pole"
-config = {"length": 1.5, "masspole": 0.1}
+config = {"length": 1.5, "masspole": 1.1, "gravity": 1.62}
 
 
 class TemplateSimulatorSession:
@@ -98,6 +98,14 @@ class TemplateSimulatorSession:
             self.env.env.length = config["length"]
             if self.save_video:
                 self.env.env.env.length = config["length"]
+        if "masspole" in config.keys():
+            self.env.env.masspole = config["masspole"]
+            if self.save_video:
+                self.env.env.env.masspole = config["masspole"]
+        if "gravity" in config.keys():
+            self.env.env.gravity = config["gravity"]
+            if self.save_video:
+                self.env.env.env.gravity = config["gravity"]
         if self.render:
             self.sim_render()
 
@@ -165,9 +173,11 @@ def env_setup():
     return workspace, access_key
 
 
-def test_random_policy(render: bool = True, num_episodes: int = 10):
+def test_random_policy(
+    render: bool = True, num_episodes: int = 10, save_video: bool = False
+):
 
-    sim = TemplateSimulatorSession(save_video=True)
+    sim = TemplateSimulatorSession(save_video=save_video)
     for episode in range(num_episodes):
         iteration = 0
         terminal = False
@@ -242,8 +252,8 @@ def main(render: bool = False, save_runs: bool = False):
                 time.sleep(event.idle.callback_time)
                 print("Idling...")
             elif event.type == "EpisodeStart":
-                print(event.episode_start.config)
-                sim.episode_start(event.episode_start.config)
+                # sim.episode_start(event.episode_start.config)
+                sim.episode_start(config)
             elif event.type == "EpisodeStep":
                 sim.episode_step(event.episode_step.action["command"])
             elif event.type == "EpisodeFinish":
@@ -273,5 +283,5 @@ def main(render: bool = False, save_runs: bool = False):
 
 
 if __name__ == "__main__":
-    main(render=False, save_runs=True)
+    main(render=True, save_runs=False)
     # test_random_policy(render=False)
