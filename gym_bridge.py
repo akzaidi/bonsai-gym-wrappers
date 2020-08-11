@@ -30,7 +30,7 @@ from microsoft_bonsai_api.simulator.generated.models import (
 )
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
-brain_name = "stellar-pole"
+brain_name = "gym-pole"
 default_config = {"length": 0.5, "masspole": 0.1}
 
 
