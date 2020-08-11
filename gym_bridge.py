@@ -13,13 +13,14 @@ Usage:
 
 import os
 import pathlib
-import sys
 from dotenv import load_dotenv, set_key
 import time
 import datetime
 from typing import Dict, Any, List
 import gym
 import wandb
+import numpy as np
+import pandas as pd
 from gym.wrappers import TimeLimit, Monitor
 from gym.spaces import Discrete, Box, MultiBinary, MultiDiscrete, Space
 from microsoft_bonsai_api.simulator.client import BonsaiClient, BonsaiClientConfig
@@ -30,7 +31,7 @@ from microsoft_bonsai_api.simulator.generated.models import (
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 brain_name = "stellar-pole"
-default_config = {"length": 1.5, "masspole": 0.1}
+default_config = {"length": 0.5, "masspole": 0.1}
 
 
 class TemplateSimulatorSession:
@@ -97,7 +98,7 @@ class TemplateSimulatorSession:
             "sparse_reward": self.sparse_reward,
         }
 
-    def episode_start(self, config: Dict[str, Any] = config):
+    def episode_start(self, config: Dict[str, Any] = default_config):
         """Method invoked at the start of each episode with a given 
         episode configuration.
 
@@ -114,11 +115,11 @@ class TemplateSimulatorSession:
                 self.env.env.env.length = config["length"]
         if "masspole" in config.keys():
             self.env.env.masspole = config["masspole"]
-            if self.save_video:
+            if self.save_runs:
                 self.env.env.env.masspole = config["masspole"]
         if "gravity" in config.keys():
             self.env.env.gravity = config["gravity"]
-            if self.save_video:
+            if self.save_runs:
                 self.env.env.env.gravity = config["gravity"]
         if self.render:
             self.sim_render()
@@ -136,12 +137,19 @@ class TemplateSimulatorSession:
         """
 
         self.observation, self.sparse_reward, self.terminal, self.info = self.env.step(
-            action
+            action["command"]
         )
         if self.render:
             self.sim_render()
+
+        state = self.get_state()
         if self.save_runs:
-            wandb.log({**action, **self.observation, **self.config})
+            wandb.log({**action, **state, **self.config})
+            # wandb.log({"gradients": wandb.Histogram(numpy_array_or_sequence)})
+
+            # wandb.run.summary.update(
+            # {"gradients": wandb.Histogram(np_histogram=np.histogram(data))}
+            # )
 
     def sim_render(self):
 
@@ -170,8 +178,6 @@ class TemplateSimulatorSession:
         episode : int, optional
         iteration : int, optional
         """
-
-        import pandas as pd
 
         def add_prefixes(d, prefix: str):
             return {f"{prefix}_{k}": v for k, v in d.items()}
@@ -232,7 +238,7 @@ def test_random_policy(
         iteration = 0
         terminal = False
         obs = sim.episode_start(config=default_config)
-        action = sim.random_policy()
+        action = {"command": sim.random_policy()}
         while not terminal:
             sim.episode_step(action)
             obs = sim.observation
@@ -310,10 +316,9 @@ def main(
                 time.sleep(event.idle.callback_time)
                 print("Idling...")
             elif event.type == "EpisodeStart":
-                # sim.episode_start(event.episode_start.config)
-                sim.episode_start(config)
+                sim.episode_start(event.episode_start.config)
             elif event.type == "EpisodeStep":
-                sim.episode_step(event.episode_step.action["command"])
+                sim.episode_step(event.episode_step.action)
             elif event.type == "EpisodeFinish":
                 print("Episode Finishing...")
             elif event.type == "Unregister":
@@ -341,5 +346,5 @@ def main(
 
 
 if __name__ == "__main__":
-    main(render=True, save_runs=False)
-    # test_random_policy(render=False)
+    # main(render=True, save_runs=False)
+    test_random_policy(render=False)
