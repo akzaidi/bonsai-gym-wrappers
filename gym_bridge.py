@@ -34,7 +34,7 @@ brain_name = "gym-pole"
 default_config = {"length": 0.5, "masspole": 0.1}
 
 
-class TemplateSimulatorSession:
+class BonsaiGymWrapper:
     def __init__(
         self,
         env_name: str = "CartPole-v1",
@@ -90,10 +90,11 @@ class TemplateSimulatorSession:
         """ Called to retreive the current state of the simulator. """
 
         return {
-            "position": self.observation.tolist()[0],
-            "velocity": self.observation.tolist()[1],
-            "angle": self.observation.tolist()[2],
-            "angular_velocity": self.observation.tolist()[3],
+            # "position": self.observation.tolist()[0],
+            # "velocity": self.observation.tolist()[1],
+            # "angle": self.observation.tolist()[2],
+            # "angular_velocity": self.observation.tolist()[3],
+            "position": int(self.observation),
             "gym_terminal": int(self.terminal),
             "sparse_reward": self.sparse_reward,
         }
@@ -109,6 +110,8 @@ class TemplateSimulatorSession:
         """
 
         self.observation = self.env.reset()
+        self.sparse_reward = 0
+        self.gym_terminal = False
         if "length" in config.keys():
             self.env.env.length = config["length"]
             if self.save_runs:
@@ -230,10 +233,13 @@ def env_setup():
 
 
 def test_random_policy(
-    render: bool = True, num_episodes: int = 10, save_video: bool = False
+    render: bool = True,
+    num_episodes: int = 10,
+    save_video: bool = False,
+    env_name: str = "CartPole-v1",
 ):
 
-    sim = TemplateSimulatorSession(save_runs=True)
+    sim = BonsaiGymWrapper(save_runs=save_video, env_name=env_name, render=render)
     for episode in range(num_episodes):
         iteration = 0
         terminal = False
@@ -255,8 +261,9 @@ def test_random_policy(
 
 def main(
     render: bool = False,
+    env_name: str = "CartPole-v1",
     log_iterations: bool = False,
-    config_setup: bool = False,
+    config_setup: bool = True,
     save_runs: bool = False,
 ):
     """Main entrypoint for running simulator connections
@@ -275,7 +282,7 @@ def main(
         load_dotenv(verbose=True, override=True)
 
     # Grab standardized way to interact with sim API
-    sim = TemplateSimulatorSession(render=render, save_runs=save_runs)
+    sim = BonsaiGymWrapper(render=render, save_runs=save_runs, env_name=env_name)
 
     # Configure client to interact with Bonsai service
     config_client = BonsaiClientConfig()
@@ -346,5 +353,6 @@ def main(
 
 
 if __name__ == "__main__":
-    # main(render=True, save_runs=False)
-    test_random_policy(render=False)
+
+    main(render=True, save_runs=False, env_name="FrozenLake-v0")
+    # test_random_policy(render=False, env_name="FrozenLake-v0")
