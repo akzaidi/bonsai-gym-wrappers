@@ -262,8 +262,7 @@ def test_random_policy(
 def main(
     render: bool = False,
     env_name: str = "CartPole-v1",
-    log_iterations: bool = False,
-    config_setup: bool = True,
+    config_setup: bool = False,
     save_runs: bool = False,
 ):
     """Main entrypoint for running simulator connections
@@ -352,7 +351,42 @@ def main(
         print("Unregistered simulator because: {}".format(err))
 
 
+def t_or_f(arg):
+    ua = str(arg).upper()
+    if "TRUE".startswith(ua):
+        return True
+    elif "FALSE".startswith(ua):
+        return False
+    else:
+        pass  # error condition maybe?
+
+
 if __name__ == "__main__":
 
-    main(render=True, save_runs=False, env_name="FrozenLake-v0")
-    # test_random_policy(render=False, env_name="FrozenLake-v0")
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Bonsai and Simulator Integration...")
+    parser.add_argument(
+        "--env_name", type=str, default="FrozenLake-v0", help="Gym environment name"
+    )
+    parser.add_argument(
+        "--render", type=bool, default=False, help="Render training episodes"
+    )
+    parser.add_argument(
+        "--config-setup",
+        type=bool,
+        default=False,
+        help="Use a local environment file to setup access keys and workspace ids",
+    )
+    parser.add_argument(
+        "--test-local", type=bool, default=False, help="Run local test."
+    )
+
+    args = parser.parse_args()
+
+    if not t_or_f(args.test_local):
+        main(
+            env_name=args.env_name, config_setup=args.config_setup, render=args.render,
+        )
+    else:
+        test_random_policy(render=args.render, env_name=args.env_name)
