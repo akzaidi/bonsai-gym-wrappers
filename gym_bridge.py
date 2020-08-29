@@ -30,14 +30,14 @@ from microsoft_bonsai_api.simulator.generated.models import (
 )
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
-brain_name = "gym-pole"
+brain_name = "gym-frozen-lake"
 default_config = {"length": 0.5, "masspole": 0.1}
 
 
 class BonsaiGymWrapper:
     def __init__(
         self,
-        env_name: str = "CartPole-v1",
+        env_name: str = "FrozenLake-v0",
         render: bool = False,
         save_prefix: str = brain_name,
         save_runs: bool = False,
@@ -48,7 +48,7 @@ class BonsaiGymWrapper:
         Parameters
         ----------
         env_name : str, optional
-            [description], by default "Cartpole-v1"
+            [description], by default "FrozenLake-v0"
         """
 
         self.env_name = env_name
